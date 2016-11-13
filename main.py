@@ -28,12 +28,12 @@ store = ModbusSlaveContext(
 context = ModbusServerContext(slaves=store, single=True)
 
 identity = ModbusDeviceIdentification()
-identity.VendorName  = 'pymodbus'
-identity.ProductCode = 'PM'
+identity.VendorName  = 'SCADALiaris'
+identity.ProductCode = 'RandomPLC 1'
 identity.VendorUrl   = 'http://github.com/bashwork/pymodbus/'
 identity.ProductName = 'pymodbus Server'
 identity.ModelName   = 'pymodbus Server'
-identity.MajorMinorRevision = '1.0'
+identity.MajorMinorRevision = '0.1'
 
 i = 0
 
