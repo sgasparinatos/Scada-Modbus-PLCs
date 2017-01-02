@@ -55,6 +55,8 @@ def update_writer(a):
         proximity = int(data_from_plc.split(":")[0])
         light = int(data_from_plc.split(":")[1])
         button = int(data_from_plc.split(":")[2])
+        temperature= float(data_from_plc.split(":")[3])
+        humidity = float(data_from_plc.split(":")[4])
 
     except Exception as ex:
         print "EXCEPTION ", ex
@@ -64,7 +66,8 @@ def update_writer(a):
 
     context[slave_id].setValues(4, 1, [proximity])
     context[slave_id].setValues(4, 2, [light])
-
+    context[slave_id].setValues(4, 3, [temperature])
+    context[slave_id].setValues(4, 4, [humidity])
     context[slave_id].setValues(2, 1, [True if button == 1 else False])
 
 
