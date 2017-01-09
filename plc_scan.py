@@ -11,8 +11,9 @@ import argparse
 
 
 upload_data = False
-search_range = "100-110"
-subnet = "192.168.0."
+# search_range = "100-110"
+search_range = "1-30"
+subnet = "192.168.43."
 # ports = "503,502,10503"
 ports = '10503'
 

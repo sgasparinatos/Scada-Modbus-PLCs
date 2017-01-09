@@ -8,6 +8,7 @@ from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 from pymodbus.transaction import ModbusRtuFramer, ModbusAsciiFramer
 from twisted.internet.task import LoopingCall
 from argparse import ArgumentParser
+from rpi_plc import Rpi1Wire
 
 import serial
 import random
@@ -19,6 +20,63 @@ log = logging.getLogger()
 log.setLevel(logging.ERROR)
 
 i=0
+
+
+
+
+
+def rpi_plc(a):
+
+    context = a[0]
+    rpi = a[1]
+    args = a[2]
+
+    slave_id = 1
+
+    data_from_plc = rpi.get_temps()
+
+
+
+
+    if args.verbose:
+        print "GOT proximity" , str(data_from_plc)
+
+
+
+
+
+
+
+
+
+    values = context[slave_id].getValues(4, 1, count=10)
+    i = 0
+    for t in data_from_plc:
+        context[slave_id].setValues(4, i+1, [data_from_plc[i]])
+        i += 1
+
+    output_registers = context[slave_id].getValues(3, 0, count=10)
+    input_coils = context[slave_id].getValues(2, 1, count=10)
+    output_coils = context[slave_id].getValues(1, 1, count=10)
+
+    data_to_plc = ["0", ":", "0", "\n"]
+    if output_coils[0]:
+        data_to_plc[0] = "1"
+
+    if output_coils[1]:
+        data_to_plc[2] = "1"
+
+
+
+
+    if args.verbose:
+        print "IR:", values, "(" + str(len(values)) + ")"
+        print "HR:" , output_registers
+        print "DI:" , input_coils
+        print "CO:" , output_coils
+
+    print "_" * 100
+
 
 
 def random_plc(a):
@@ -113,7 +171,8 @@ def arduino_plc(a):
         print "HR:" , output_registers
         print "DI:" , input_coils
         print "CO:" , output_coils
-        print "_" * 100
+
+    print "_" * 100
 
 
 def main():
@@ -144,7 +203,7 @@ def main():
 
     identity = ModbusDeviceIdentification()
     identity.VendorName  = 'SCADALiaris'
-    identity.ProductCode = 'RealPLC 1'
+    # identity.ProductCode = 'RealPLC 1'
     identity.VendorUrl   = 'http://github.com/bashwork/pymodbus/'
     identity.ProductName = 'pymodbus Server'
     identity.ModelName   = 'pymodbus Server'
@@ -152,18 +211,32 @@ def main():
 
 
     time = args.poll_interval
-    if not args.random:
-        try:
-            serial_port = serial.Serial(port=args.serial_port, baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1)
-        except serial.SerialException as ex:
-            print "ERROR", ex
-            sys.exit(-1)
+    if not args.random :
 
-        loop = LoopingCall(f=arduino_plc,a=(context, serial_port, args))
-        loop.start(time, now=False)
-        StartTcpServer(context, identity=identity, address=listen_conf)
+        if args.rpi:
+            rpi = Rpi1Wire()
+
+            identity.ProductCode = 'RPiPLC 1'
+            loop = LoopingCall(f=rpi_plc, a=(context, rpi, args))
+            loop.start(time, now=False)
+            StartTcpServer(context, identity=identity, address=listen_conf)
+
+        else:
+
+            try:
+                serial_port = serial.Serial(port=args.serial_port, baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1)
+            except serial.SerialException as ex:
+                print "ERROR", ex
+                sys.exit(-1)
+            identity.ProductCode = 'ArduinoPLC 1'
+            loop = LoopingCall(f=arduino_plc,a=(context, serial_port, args))
+            loop.start(time, now=False)
+            StartTcpServer(context, identity=identity, address=listen_conf)
+
+
 
     else:
+        identity.ProductCode = 'RandomPLC 1'
         loop = LoopingCall(f=random_plc, a=(context, args))
         loop.start(time, now=False)
         StartTcpServer(context, identity=identity, address=listen_conf)
@@ -180,6 +253,7 @@ def parse_settings():
     parser.add_argument("-i", "--poll-interval", help="Poll interval time in seconds",type=float, default=0.1 )
     parser.add_argument("-v", "--verbose", help="Prints the values of plc on stdout.", action="store_true", default=False)
     parser.add_argument("-r", "--random", help="Plc returns random values", action="store_true", default=False)
+    parser.add_argument("--rpi", help="Plc returns random values", action="store_true", default=False)
 
     return parser.parse_args()
 
